@@ -1,22 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/util/app_dialog.dart';
 import '../sign_up_colors.dart';
+import '../view_model/sign_up_view_model.dart';
 import '../widget/register_form_widget.dart';
 
 /// 新規登録画面
 /// ダークモードのモダンなUIで、格闘技フォーラムへの登録を促す画面
-class SignUpView extends StatefulWidget {
+class SignUpView extends ConsumerStatefulWidget {
   const SignUpView({super.key});
 
   @override
-  State<SignUpView> createState() => _SignUpViewState();
+  ConsumerState<SignUpView> createState() => _SignUpViewState();
 }
 
-class _SignUpViewState extends State<SignUpView> {
+class _SignUpViewState extends ConsumerState<SignUpView> {
+  final _nicknameController = TextEditingController();
   bool _isAgreedToTerms = false;
 
   @override
+  void dispose() {
+    _nicknameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(signUpViewModelProvider);
+
+    // 登録成功時にダイアログを表示
+    ref.listen(signUpViewModelProvider, (previous, next) {
+      if (next.registeredUser != null && previous?.registeredUser == null) {
+        AppDialog.show(
+          context: context,
+          title: '登録完了',
+          message: '登録が完了しました',
+        );
+      }
+      if (next.errorMessage != null && previous?.errorMessage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -37,20 +68,13 @@ class _SignUpViewState extends State<SignUpView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
-                // ヘッダーエリア
-                _buildHeaderSection(),
                 const SizedBox(height: 32),
-                // メインタイトル
                 _buildTitleSection(),
                 const SizedBox(height: 40),
-                // 入力フォームエリア
-                const RegisterFormSection(),
+                RegisterFormSection(controller: _nicknameController),
                 const SizedBox(height: 24),
-                // アクションエリア
-                _buildActionSection(),
+                _buildActionSection(isLoading: state.isLoading),
                 const SizedBox(height: 32),
-                // フッター
                 _buildFooterSection(),
                 const SizedBox(height: 24),
               ],
@@ -61,46 +85,7 @@ class _SignUpViewState extends State<SignUpView> {
     );
   }
 
-  /// ヘッダーセクション
-  Widget _buildHeaderSection() {
-    return Column(
-      children: [
-        // フォーラム名
-        const Text(
-          'MARTIAL ARTS FORUM',
-          style: TextStyle(
-            color: SignUpColors.accent,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 16),
-        // カプセル型バッジ
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: SignUpColors.badgeBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: SignUpColors.accent,
-              width: 1,
-            ),
-          ),
-          child: const Text(
-            'JOIN THE ELITE',
-            style: TextStyle(
-              color: SignUpColors.accent,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+
 
   /// タイトルセクション
   Widget _buildTitleSection() {
@@ -127,7 +112,7 @@ class _SignUpViewState extends State<SignUpView> {
   }
 
   /// アクションセクション
-  Widget _buildActionSection() {
+  Widget _buildActionSection({required bool isLoading}) {
     return Column(
       children: [
         // チェックボックス
@@ -138,11 +123,13 @@ class _SignUpViewState extends State<SignUpView> {
               height: 24,
               child: Checkbox(
                 value: _isAgreedToTerms,
-                onChanged: (value) {
-                  setState(() {
-                    _isAgreedToTerms = value ?? false;
-                  });
-                },
+                onChanged: isLoading
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _isAgreedToTerms = value ?? false;
+                        });
+                      },
                 activeColor: SignUpColors.accent,
                 checkColor: SignUpColors.textPrimary,
                 side: const BorderSide(
@@ -170,34 +157,42 @@ class _SignUpViewState extends State<SignUpView> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton(
-            onPressed: () {
-              // TODO: 新規登録処理
-            },
+            onPressed: isLoading ? null : _onRegisterPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: SignUpColors.accent,
               foregroundColor: SignUpColors.textPrimary,
+              disabledBackgroundColor: SignUpColors.accent.withValues(alpha: 0.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               elevation: 0,
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '新規登録',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: SignUpColors.textPrimary,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '新規登録',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward,
+                        size: 20,
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_forward,
-                  size: 20,
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -230,4 +225,13 @@ class _SignUpViewState extends State<SignUpView> {
       ),
     );
   }
+
+  /// 登録ボタン押下時の処理
+  void _onRegisterPressed() {
+    ref.read(signUpViewModelProvider.notifier).registerUser(
+          name: _nicknameController.text,
+          isAgreedToTerms: _isAgreedToTerms,
+        );
+  }
+
 }

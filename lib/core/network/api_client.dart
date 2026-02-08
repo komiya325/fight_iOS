@@ -19,9 +19,9 @@ class ApiClient {
     try {
       final response = await _performRequest(request);
       final decoded = request.decode(response.data as Map<String, dynamic>);
-      return ApiResponse.success(decoded);
+      return ApiSuccess(decoded);
     } on DioException catch (e) {
-      return ApiResponse.failure(_mapDioException(e));
+      return ApiFailure(_mapDioException(e));
     }
   }
 
@@ -66,29 +66,29 @@ class ApiClient {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return AppException.networkError(
+        return NetworkError(
           message: 'タイムアウトが発生しました: ${e.message}',
         );
       case DioExceptionType.connectionError:
-        return AppException.networkError(
+        return NetworkError(
           message: 'ネットワーク接続に失敗しました: ${e.message}',
         );
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode ?? 0;
-        return AppException.serverError(
+        return ServerError(
           statusCode: statusCode,
           message: 'サーバーエラーが発生しました（$statusCode）: ${e.message}',
         );
       case DioExceptionType.cancel:
-        return AppException.networkError(
+        return NetworkError(
           message: 'リクエストがキャンセルされました',
         );
       case DioExceptionType.badCertificate:
-        return AppException.networkError(
+        return NetworkError(
           message: '不正な証明書です: ${e.message}',
         );
       case DioExceptionType.unknown:
-        return AppException.networkError(
+        return NetworkError(
           message: '予期しないエラーが発生しました: ${e.message}',
         );
     }

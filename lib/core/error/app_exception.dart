@@ -1,18 +1,22 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'app_exception.freezed.dart';
-
 /// アプリケーション全体で使用するエラー型
-@freezed
-class AppException with _$AppException {
-  /// ネットワークエラー（タイムアウト・接続不可等）
-  const factory AppException.networkError({
-    required String message,
-  }) = NetworkError;
+sealed class AppException implements Exception {
+  String get message;
+}
 
-  /// サーバーエラー（4xx / 5xx）
-  const factory AppException.serverError({
-    required int statusCode,
-    required String message,
-  }) = ServerError;
+/// ネットワークエラー（タイムアウト・接続不可等）
+class NetworkError extends AppException {
+  @override
+  final String message;
+
+  NetworkError({required this.message});
+}
+
+/// サーバーエラー（4xx / 5xx）
+class ServerError extends AppException {
+  final int statusCode;
+
+  @override
+  final String message;
+
+  ServerError({required this.statusCode, required this.message});
 }

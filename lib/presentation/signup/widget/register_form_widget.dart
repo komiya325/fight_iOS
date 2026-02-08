@@ -5,7 +5,13 @@ import '../sign_up_colors.dart';
 /// 登録フォームセクション
 /// ニックネームの入力欄を表示するWidget
 class RegisterFormSection extends StatelessWidget {
-  const RegisterFormSection({super.key});
+  /// テキスト入力のコントローラー
+  final TextEditingController controller;
+
+  const RegisterFormSection({
+    super.key,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +28,7 @@ class RegisterFormSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           style: const TextStyle(
             color: SignUpColors.textPrimary,
             fontSize: 16,
